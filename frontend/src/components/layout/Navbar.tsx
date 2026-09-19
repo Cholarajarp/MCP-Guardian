@@ -4,6 +4,7 @@ import { ArrowUpRight, ScanSearch, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { EXTERNAL_LINK, REPO_URL } from "@/lib/site";
 
 /* Reference nav: full-bleed px-8 md:px-16 lg:px-24 (no centering wrapper, so
    the logo lines up with the section content below it), translucent over a
@@ -17,7 +18,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const LINKS = [
   { href: "/scan", label: "Scan", external: false },
-  { href: "#", label: "GitHub", external: true },
+  { href: REPO_URL, label: "GitHub", external: true },
 ] as const;
 
 export function Navbar() {
@@ -61,8 +62,9 @@ export function Navbar() {
                 <li key={link.label}>
                   <a
                     href={link.href}
+                    {...EXTERNAL_LINK}
                     className="inline-flex items-center gap-1 text-[0.78rem] font-semibold uppercase tracking-widest text-secondary transition-colors hover:text-foreground"
-                    aria-label="GitHub repository (placeholder)"
+                    aria-label="MCP Guardian on GitHub (opens in a new tab)"
                   >
                     {link.label}
                     <ArrowUpRight className="h-3 w-3" aria-hidden="true" />

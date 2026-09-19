@@ -9,7 +9,7 @@ const FEATURES = [
     icon: SearchCode,
     tag: "No execution",
     title: "Static analysis",
-    body: "Tool signatures, manifests and descriptions parsed with 15+ rules. The server never runs a single line.",
+    body: "Tool signatures, manifests and descriptions parsed with 17 rules. The server never runs a single line.",
   },
   {
     icon: Gauge,

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Solid brand shield with a knocked-out check: at 16px a filled mark reads
+       clearly where a thin outline (the lucide ShieldCheck stroke used in the
+       Navbar) would smear into noise. -->
+  <rect width="32" height="32" fill="#09090b"/>
+  <path d="M16 4 26 7.5v8.2c0 5.6-4 10.2-10 12.3-6-2.1-10-6.7-10-12.3V7.5L16 4Z" fill="#ff9900"/>
+  <path d="M11 16.2 14.4 19.6 21.2 12.8" fill="none" stroke="#09090b" stroke-width="2.6"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

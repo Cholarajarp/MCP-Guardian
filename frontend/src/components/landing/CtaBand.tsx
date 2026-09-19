@@ -40,7 +40,7 @@ export function CtaBand() {
             </Link>
           </div>
 
-          <p className="eyebrow-faint mt-10">Static analysis · 15+ rules · Cedar output</p>
+          <p className="eyebrow-faint mt-10">Static analysis · 17 rules · Cedar output</p>
         </Reveal>
       </div>
     </section>

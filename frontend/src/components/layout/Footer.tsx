@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { EXTERNAL_LINK, REPO_URL } from "@/lib/site";
 
 export function Footer() {
   return (
@@ -39,7 +40,11 @@ export function Footer() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted">Project</p>
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
-                  <a href="#" className="text-secondary transition-colors hover:text-foreground">
+                  <a
+                    href={REPO_URL}
+                    {...EXTERNAL_LINK}
+                    className="text-secondary transition-colors hover:text-foreground"
+                  >
                     GitHub
                   </a>
                 </li>

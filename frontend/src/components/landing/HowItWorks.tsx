@@ -16,7 +16,7 @@ const STEPS = [
     n: "02",
     icon: FileTerminal,
     title: "Static analysis",
-    body: "15+ rules run over the definitions — prompt-injected descriptions, unrestricted writes, silent egress — rolled into one 0-100 risk score.",
+    body: "17 rules run over the definitions — prompt-injected descriptions, unrestricted writes, silent egress — rolled into one 0-100 risk score.",
   },
   {
     n: "03",

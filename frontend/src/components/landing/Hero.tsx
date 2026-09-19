@@ -28,7 +28,7 @@ const FINDINGS = [
 
 const CAPABILITIES = [
   "Static only",
-  "15+ rules",
+  "17 rules",
   "Risk 0-100",
   "Cedar policy",
   "Prompt injection",
