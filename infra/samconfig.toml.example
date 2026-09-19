@@ -1,0 +1,42 @@
+version = 0.1
+
+# Copy this file to infra/samconfig.toml and adjust, or let
+# `sam deploy --guided` write one for you (it will land in the CWD you run
+# sam from — infra/deploy.sh runs sam from the repo root and passes
+# --config-file infra/samconfig.toml when it exists).
+
+[default.build.parameters]
+template = "infra/template.yaml"
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+stack_name = "mcp-guardian"
+resolve_s3 = true
+s3_prefix = "mcp-guardian"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+# Leave BedrockModelId unset to inherit the template default
+# (amazon.nova-lite-v1:0, ~$0.0001 per scan). Overriding it with Claude 3.5
+# Sonnet costs ~50x more per input token and needs model access enabled in
+# every region of its cross-region inference profile, so it is NOT the default.
+#
+# ReservedConcurrency is the AWS equivalent of Cloud Run's `max instances`.
+# Lambda already scales to zero when idle, so min=0 needs no configuration.
+#
+# After the frontend is hosted, point AllowedOrigins at its real URL
+# (a comma-separated list is supported) and redeploy:
+#   parameter_overrides = ["AllowedOrigins=https://main.d1234.amplifyapp.com"]
+#
+# Leave ReservedConcurrency alone (default 0 = unset). Two reasons:
+#   1. A NEW AWS account's total concurrency limit is 10, and AWS refuses any
+#      reservation that drops the unreserved pool below 10 -- so on a fresh
+#      account every value fails the deploy. The account limit IS the ceiling.
+#   2. Even where it is legal, a cap of 1 (the literal Cloud Run `max=1`
+#      translation) breaks this stack: GUARDIAN_SYNC_SCAN=1 makes a scan run
+#      inline for ~3s holding the only slot, so the frontend's status polls get
+#      throttled and the UI errors mid-scan.
+parameter_overrides = [
+  "AllowedOrigins=*",
+]

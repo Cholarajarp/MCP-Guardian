@@ -1,0 +1,21 @@
+# Runtime dependencies ONLY — this file is what gets vendored into the Lambda
+# artifact, so everything here ships to production. Dev/test tooling lives in
+# requirements-dev.txt.
+#
+# boto3 is deliberately pinned even though the Lambda runtime bundles a copy:
+# the bundled version lags, and app/agents/narrator.py calls the Bedrock
+# Converse API (client.converse), which needs a reasonably recent boto3. Relying
+# on the runtime copy is how you get a NoSuchMethod failure that only appears
+# after deploy.
+#
+# Upper bounds matter here in a way they do not for a normal app: this file is
+# resolved fresh at vendoring time (infra/build-nodocker.ps1 runs pip with
+# --platform/--python-version), so an unbounded range silently picks up whatever
+# is newest at DEPLOY time, not what was tested. That is exactly how
+# `mangum>=0.17` pulled 0.22.0, which renamed Mangum's base-path argument and
+# broke the deploy with a TypeError while all 122 local tests passed.
+fastapi>=0.115,<1.0
+pydantic>=2.8,<3.0
+httpx>=0.27,<1.0
+boto3>=1.34,<2.0
+mangum>=0.17,<1.0

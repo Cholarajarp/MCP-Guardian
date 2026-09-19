@@ -1,0 +1,42 @@
+# MCP Guardian — local full stack (infra/CI agent).
+#   docker compose up --build
+# Root .env (see .env.example) feeds AWS_* / BEDROCK_MODEL_ID so the Bedrock
+# narrative agent runs locally; without creds it falls back to the template.
+#
+# NOTE: NEXT_PUBLIC_* vars are inlined at image BUILD time — pass the real
+# frontend->backend URL as a build arg when deploying outside localhost.
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - GUARDIAN_DB_PATH=/data/guardian.db
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_PROFILE=${AWS_PROFILE:-}
+    volumes:
+      # Named volume -> SQLite scan history survives container restarts.
+      - api-data:/data
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Browser calls the API from the HOST, so localhost:8000 is correct
+        # for local compose (port 8000 is published above).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_CHIMERA_API_URL: ${NEXT_PUBLIC_CHIMERA_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_COGNITO_DOMAIN: ${NEXT_PUBLIC_COGNITO_DOMAIN:-placeholder.auth.us-east-1.amazoncognito.com}
+        NEXT_PUBLIC_COGNITO_APP_CLIENT_ID: ${NEXT_PUBLIC_COGNITO_APP_CLIENT_ID:-placeholder-client-id}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  api-data:

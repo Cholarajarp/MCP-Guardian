@@ -1,0 +1,447 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   MCP Guardian — design tokens
+
+   Visual language is taken from the reference project verbatim, not
+   reinterpreted. The devices that define it:
+     - SQUARE corners. No radius on buttons, cards, inputs, or panels.
+     - Hairline grids built from `gap-px` over a --hairline background, so the
+       dividers are the gap and the children stay opaque. Not bordered cards.
+     - Display type: clamp()-scaled, font-black (900), UPPERCASE, tracking
+       tighter, leading none, deliberately line-broken.
+     - Blur, gradients and glow ARE part of the language (nav backdrop, section
+       washes, pulsing CTA ring, shine sweep). An earlier version of this file
+       banned all three; that was wrong and is why the UI read as generic.
+     - Inter (300-900) + JetBrains Mono. No third display face.
+
+   Dark mode is the reference palette as-authored. Light mode is its inversion,
+   because MCP Guardian ships both.
+   ========================================================================== */
+
+:root {
+  /* Light = inverted reference */
+  --background: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #e9e9ec;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  /* The gap-grid divider. Sits UNDER a `gap-px` grid whose children are opaque. */
+  --hairline: rgba(9, 9, 11, 0.1);
+  --hairline-strong: rgba(9, 9, 11, 0.16);
+
+  /* Nav is translucent at rest and near-opaque once scrolled, over a 20px
+     backdrop blur — the reference's treatment. Both values must be rgba:
+     a solid colour would defeat the blur it sits on. */
+  --nav-bg: rgba(250, 250, 250, 0.6);
+  --nav-bg-scrolled: rgba(250, 250, 250, 0.94);
+
+  --foreground: #09090b;
+  --secondary: #52525b;
+  --muted: #71717a;
+  --faint: #a1a1aa;
+
+  /* AWS orange is a product constraint (Verified Permissions / Bedrock), so it
+     stays in place of the reference's #ff6600 — same family, same role.
+     --brand is a FILL. --brand-text is the accessible text variant (#ff9900 on
+     white is ~1.9:1, far under the 4.5:1 floor). */
+  --brand: #ff9900;
+  --brand-hover: #ffad33;
+  --brand-subtle: rgba(255, 153, 0, 0.1);
+  --brand-contrast: #09090b;
+  --brand-text: #b45309;
+  --brand-ring: rgba(255, 153, 0, 0.5);
+
+  /* Chrome/steel — the reference's #c0c0c0 secondary metal. */
+  --chrome: #71717a;
+
+  --positive: #047857;
+  --positive-subtle: rgba(16, 185, 129, 0.08);
+  --positive-border: rgba(4, 120, 87, 0.32);
+  --positive-ink: #ffffff;
+  --caution: #b45309;
+  --caution-subtle: rgba(245, 158, 11, 0.1);
+  --caution-border: rgba(180, 83, 9, 0.3);
+
+  --code-string: #047857;
+  --code-keyword: #0369a1;
+
+  --severity-critical: #dc2626;
+  --severity-high: #ea580c;
+  --severity-medium: #a16207;
+  --severity-low: #2563eb;
+  --severity-info: #71717a;
+  --severity-critical-ink: #ffffff;
+  --severity-high-ink: #09090b;
+  --severity-medium-ink: #ffffff;
+  --severity-low-ink: #ffffff;
+  --severity-info-ink: #ffffff;
+  --severity-critical-subtle: rgba(220, 38, 38, 0.09);
+  --severity-high-subtle: rgba(234, 88, 12, 0.09);
+  --severity-medium-subtle: rgba(161, 98, 7, 0.1);
+  --severity-low-subtle: rgba(37, 99, 235, 0.09);
+  --severity-info-subtle: rgba(113, 113, 122, 0.1);
+
+  --grid-line: rgba(9, 9, 11, 0.055);
+  --grain-opacity: 0.03;
+  --grain-blend: multiply;
+
+  /* Ink used for text sitting on top of photography / dark washes. Fixed, not
+     theme-flipped: the wash under it is dark in both themes. */
+  --on-media: #fafafa;
+  --on-media-dim: #a1a1aa;
+
+  --shadow-card: 0 1px 2px rgba(9, 9, 11, 0.05);
+  --shadow-card-hover: 0 2px 4px rgba(9, 9, 11, 0.06), 0 8px 24px rgba(9, 9, 11, 0.07);
+
+  color-scheme: light;
+}
+
+.dark {
+  /* Reference palette, as authored. */
+  --background: #09090b;
+  --surface: #18181b;
+  --surface-2: #27272a;
+  --surface-3: #3f3f46;
+  --border: #2e2e33;
+  --border-strong: #3f3f46;
+
+  --hairline: rgba(255, 255, 255, 0.06);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+
+  /* Reference values verbatim. */
+  --nav-bg: rgba(9, 9, 11, 0.5);
+  --nav-bg-scrolled: rgba(9, 9, 11, 0.94);
+
+  --foreground: #fafafa;
+  --secondary: #d4d4d8;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+
+  --brand: #ff9900;
+  --brand-hover: #ffab2e;
+  --brand-subtle: rgba(255, 153, 0, 0.12);
+  --brand-contrast: #09090b;
+  --brand-text: #ffab2e;
+  --brand-ring: rgba(255, 153, 0, 0.45);
+
+  --chrome: #c0c0c0;
+
+  --positive: #34d399;
+  --positive-subtle: rgba(52, 211, 153, 0.1);
+  --positive-border: rgba(52, 211, 153, 0.34);
+  --positive-ink: #09090b;
+  --caution: #fbbf24;
+  --caution-subtle: rgba(251, 191, 36, 0.1);
+  --caution-border: rgba(251, 191, 36, 0.34);
+
+  --code-string: #34d399;
+  --code-keyword: #38bdf8;
+
+  --severity-critical: #f87171;
+  --severity-high: #fb923c;
+  --severity-medium: #facc15;
+  --severity-low: #60a5fa;
+  --severity-info: #a1a1aa;
+  --severity-critical-ink: #09090b;
+  --severity-high-ink: #09090b;
+  --severity-medium-ink: #09090b;
+  --severity-low-ink: #09090b;
+  --severity-info-ink: #09090b;
+  --severity-critical-subtle: rgba(248, 113, 113, 0.13);
+  --severity-high-subtle: rgba(251, 146, 60, 0.13);
+  --severity-medium-subtle: rgba(250, 204, 21, 0.12);
+  --severity-low-subtle: rgba(96, 165, 250, 0.13);
+  --severity-info-subtle: rgba(161, 161, 170, 0.13);
+
+  --grid-line: rgba(250, 250, 249, 0.05);
+  --grain-opacity: 0.16;
+  --grain-blend: overlay;
+
+  --on-media: #fafafa;
+  --on-media-dim: #a1a1aa;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    background: var(--background);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Reference headings are one face, heavy, tight. No second display family. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  section,
+  header,
+  footer,
+  nav {
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+  }
+
+  ::selection {
+    background: rgba(255, 153, 0, 0.3);
+    color: var(--foreground);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-3);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* ---- display type ------------------------------------------------------
+     The reference sets hero at clamp(4rem,11vw,9rem) font-black tracking-tighter
+     leading-none, uppercase, hard line breaks. These bottle that up. */
+  /* Sizes are derived from measured text width, not taste. In Inter 900 at
+     this tracking, "YOU CONNECT." costs 7.27px of width per 1px of font-size
+     and "BEFORE YOU TRUST IT." costs 10.58. Every hard-broken line below has
+     to fit its container at every width, or the composition rewraps (mobile)
+     or clips (desktop). */
+  .display-hero {
+    /* Below lg the hero is a single full-width column, so it can afford the
+       reference's ~10vw. The 2rem floor keeps it inside a 320px screen
+       (2rem x 7.27 = 233px of text). */
+    font-size: clamp(2rem, 10vw, 8rem);
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    line-height: 0.9;
+    text-transform: uppercase;
+  }
+
+  /* From lg up the hero h1 is NOT viewport-wide: it sits in the 1.1fr track of
+     `lg:grid-cols-[1.1fr_0.9fr]`, i.e. ~0.55 x (100vw - 256px). At 1536px that
+     is ~704px, while 10vw would demand 1113px -- which is exactly why
+     "CONNECT." used to run off the right edge. 5.5vw is the widest coefficient
+     that still fits the track at 1024, 1536 and 1920. */
+  @media (min-width: 1024px) {
+    .display-hero {
+      font-size: clamp(3.25rem, 5.5vw, 8rem);
+    }
+  }
+
+  .display-section {
+    /* 7vw is safe full-bleed at every breakpoint (the tightest points are the
+       768px and 1024px padding jumps). The old 2.5rem floor was the bug: 40px
+       x 10.58 = 423px of text inside a 316px mobile column. */
+    font-size: clamp(1.5rem, 7vw, 6rem);
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+    text-transform: uppercase;
+  }
+
+  .display-sub {
+    font-size: clamp(1.75rem, 4vw, 3rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  /* Outlined second line — the reference's WebkitTextStroke trick.
+     Stroke colours are the *accessible* variants, not the raw fills: an
+     outlined glyph is thin, and #ff9900 is ~1.9:1 on the light background,
+     failing even the 3:1 large-text floor. The reference could use a 0.4-alpha
+     white stroke because it is dark-only; this ships both themes. */
+  .text-outline {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--secondary);
+  }
+  .text-outline-brand {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--brand-text);
+  }
+
+  /* ---- micro labels ------------------------------------------------------
+     Reference: text-[0.68rem] font-bold uppercase tracking-[0.25em].
+     Colour is --secondary (not --muted): at this size it is small text and
+     needs the 4.5:1 floor. */
+  .eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--secondary);
+  }
+
+  .eyebrow-faint {
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+  }
+
+  /* ---- the signature grid -----------------------------------------------
+     Dividers come from the 1px gap showing the --hairline backdrop through.
+     Children MUST set an opaque background (bg-background / bg-surface). */
+  .hairline-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--hairline);
+  }
+
+  /* ---- CTA treatments ----------------------------------------------------
+     Reference animates a pulsing boxShadow ring and sweeps a shine bar across
+     the button on hover. Done in CSS so it survives SSR and needs no JS. */
+  .pulse-ring {
+    animation: pulse-ring 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 var(--brand-ring);
+    }
+    50% {
+      box-shadow: 0 0 0 18px rgba(255, 153, 0, 0);
+    }
+  }
+
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
+    transform: translateX(-100%);
+    transition: transform 0.7s ease;
+  }
+  .shine:hover::after {
+    transform: translateX(100%);
+  }
+
+  /* ---- surfaces ----------------------------------------------------------- */
+  .bg-graph-paper {
+    background-image: repeating-linear-gradient(
+        to right,
+        var(--grid-line) 0 1px,
+        transparent 1px 48px
+      ),
+      repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px 48px);
+  }
+
+  /* Tight 10px graticule the reference lays under its CTA bands. */
+  .bg-graticule {
+    background-image: repeating-linear-gradient(
+        0deg,
+        var(--foreground) 0 1px,
+        transparent 1px 10px
+      ),
+      repeating-linear-gradient(90deg, var(--foreground) 0 1px, transparent 1px 10px);
+    opacity: 0.04;
+  }
+
+  .graph-fade {
+    mask-image: linear-gradient(to bottom, black 0%, black 65%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 65%, transparent 100%);
+  }
+
+  /* Film grain. z-index stays low (1) on purpose: the reference pins it at
+     z-50/z-200, which would paint over dropdowns and the theme toggle. */
+  .bg-grain::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: var(--grain-blend);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 320 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  .rule-fade {
+    background: linear-gradient(to right, var(--border-strong), transparent);
+    height: 1px;
+    border: 0;
+  }
+
+  /* Blinking caret for typed-out terminal copy. */
+  .caret::after {
+    content: "";
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background: currentColor;
+    animation: caret-blink 1s steps(2, start) infinite;
+  }
+
+  @keyframes caret-blink {
+    to {
+      visibility: hidden;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

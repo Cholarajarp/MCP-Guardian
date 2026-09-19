@@ -1,0 +1,8 @@
+# Local development + CI. Installs the runtime set, then the test tooling.
+#   py -3.12 -m pip install -r backend/requirements-dev.txt
+-r requirements.txt
+
+# uvicorn runs the app locally (app.main:app). NOT needed on Lambda — Mangum
+# translates the Lambda event to ASGI there — so it stays out of the artifact.
+uvicorn[standard]>=0.30
+pytest>=8.0

@@ -1,0 +1,240 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  MCP Guardian backend — FastAPI scanner on AWS Lambda (python3.12, Mangum)
+  behind a Lambda Function URL and an API Gateway REST API, with Amazon Bedrock
+  (Nova Lite) for risk narratives and a DynamoDB table holding scan history,
+  the shared daily Bedrock budget counter and the narrative cache.
+
+  COST POSTURE: everything here sits inside the always-free tier except Bedrock
+  invocations. The Function URL is public and unauthenticated, so Bedrock spend
+  is bounded three ways: a per-client rate limit, a hard shared daily budget
+  (BedrockDailyBudget), and reserved concurrency on the function. When the
+  budget is exhausted the API keeps working and serves the deterministic
+  template narrative instead — the product degrades, the bill does not grow.
+
+# ---------------------------------------------------------------------------
+# Parameters — override via `sam deploy --parameter-overrides` or
+# infra/samconfig.toml ([default.deploy.parameters].parameter_overrides).
+# ---------------------------------------------------------------------------
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+    Description: >
+      Bedrock model ID used by the narrative agent (app/agents/narrator.py).
+      Default Nova Lite ≈ $0.06/1M input + $0.24/1M output tokens
+      (≈ $0.0001 per narrative). Alternatives: amazon.nova-pro-v1:0,
+      amazon.nova-micro-v1:0, or any Claude model ID. Enable model access
+      for it in the Bedrock console in this region.
+  AllowedOrigins:
+    Type: String
+    Default: "*"
+    Description: >
+      Comma-separated origins for ALLOWED_ORIGINS (FastAPI CORS middleware).
+      After the frontend is hosted, set this to its URL, e.g.
+      "https://main.d1234.amplifyapp.com".
+  BedrockDailyBudget:
+    Type: Number
+    Default: 500
+    MinValue: 0
+    Description: >
+      Hard ceiling on PAID Bedrock calls per UTC day, shared across all Lambda
+      instances via an atomic DynamoDB counter. At the Nova Lite default this
+      caps narrative spend near $0.05/day. Set to 0 for absolute zero cost:
+      narration then always uses the deterministic local template.
+  ScanRateLimit:
+    Type: Number
+    Default: 20
+    MinValue: 0
+    Description: >
+      Scans allowed per client IP per ScanRateWindowSeconds. 0 disables the
+      limiter. In-memory per Lambda instance, so this is a speed bump against
+      scripted abuse rather than a distributed quota — BedrockDailyBudget is
+      the real spend ceiling.
+  ScanRateWindowSeconds:
+    Type: Number
+    Default: 3600
+    MinValue: 1
+    Description: Sliding window, in seconds, for ScanRateLimit.
+  ReservedConcurrency:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    Description: >
+      Maximum simultaneous Lambda executions, or 0 to leave it unset.
+      Bounds how fast the stack can consume Bedrock, Lambda-seconds and DynamoDB
+      writes under load. Defaults to 0 because a NEW AWS account has a total
+      concurrency limit of 10 and AWS refuses to let reservations drop the
+      unreserved pool below 10 -- so on a fresh account ANY value here fails the
+      deploy with "decreases account's UnreservedConcurrentExecution below its
+      minimum value of [10]". The account limit is itself the ceiling in that
+      case. Set this only once your account limit has been raised above 10.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+
+Conditions:
+  # `ReservedConcurrentExecutions: 0` does NOT mean "unlimited" to Lambda -- it
+  # throttles the function to zero and every invocation returns 429. So the
+  # opt-out value must OMIT the property entirely (AWS::NoValue) rather than
+  # pass 0 through.
+  HasReservedConcurrency: !Not [!Equals [!Ref ReservedConcurrency, 0]]
+
+Resources:
+  # -------------------------------------------------------------------------
+  # API Gateway REST API (explicit so we can control CORS at the gateway).
+  # OPTIONS preflights are answered at the gateway; app-level CORS
+  # (FastAPI CORSMiddleware, ALLOWED_ORIGINS) remains as defense in depth.
+  #
+  # NOTE: API Gateway caps integrations at 29s while this function allows 60s,
+  # so a slow scan can return 504 here while Lambda keeps running. The Function
+  # URL below has no such cap — prefer it for the frontend (see Outputs).
+  # -------------------------------------------------------------------------
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      StageName: Prod
+      Cors:
+        AllowOrigin: "'*'"
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'*'"
+
+  # -------------------------------------------------------------------------
+  # ScansTable — one table, three row kinds, all keyed by `id`:
+  #   <scan-id>      scan history       (payload, created_at, expires_at)
+  #   budget#<date>  daily Bedrock counter (used, expires_at)
+  #   narrative#<h>  cached narratives  (narrative, expires_at)
+  # app/store.py filters history reads on `attribute_exists(payload)` so the
+  # bookkeeping rows never surface as scans.
+  #
+  # Declared as AWS::DynamoDB::Table rather than AWS::Serverless::SimpleTable
+  # because SimpleTable cannot express TimeToLiveSpecification — without TTL
+  # the expires_at attributes the app writes would never delete anything and
+  # the table would grow forever. PAY_PER_REQUEST keeps it in the always-free
+  # 25 GB tier with no provisioned capacity to pay for.
+  # -------------------------------------------------------------------------
+  ScansTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+  # -------------------------------------------------------------------------
+  # ScanFunction — the whole FastAPI app as one Lambda.
+  # CodeUri is resolved relative to THIS template's directory (infra/), so
+  # `sam build` installs backend/requirements.txt into the artifact and
+  # automatically excludes .venv/.env/__pycache__ from the copied source.
+  # -------------------------------------------------------------------------
+  ScanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-scan"
+      CodeUri: ../backend
+      Handler: app.lambda_handler.handler
+      MemorySize: 512
+      Timeout: 60
+      # Optional hard ceiling on parallel execution: bounds Bedrock consumption,
+      # Lambda-seconds and DynamoDB write throughput under load. Omitted when
+      # ReservedConcurrency=0 (the default) because a new AWS account's total
+      # limit of 10 makes any reservation illegal -- see the parameter comment.
+      ReservedConcurrentExecutions: !If
+        - HasReservedConcurrency
+        - !Ref ReservedConcurrency
+        - !Ref AWS::NoValue
+      Environment:
+        Variables:
+          # DynamoDB store (SCANS_TABLE_NAME) persists history across cold
+          # starts; /tmp SQLite remains the local default when unset.
+          GUARDIAN_DB_PATH: /tmp/guardian.db
+          GUARDIAN_SYNC_SCAN: "1"  # Lambda: run the scan before responding (no frozen threads)
+          ALLOWED_ORIGINS: !Ref AllowedOrigins
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          # AWS_REGION is a Lambda RESERVED environment variable: it is
+          # injected into the runtime automatically and MUST NOT be set here
+          # (deployment would fail with a reserved-key error). The Bedrock
+          # agent (app/agents/narrator.py) reads it at runtime regardless.
+          SCANS_TABLE_NAME: !Ref ScansTable
+          # Cost + abuse guards (app/guard.py).
+          BEDROCK_DAILY_BUDGET: !Ref BedrockDailyBudget
+          SCAN_RATE_LIMIT: !Ref ScanRateLimit
+          SCAN_RATE_WINDOW_SECONDS: !Ref ScanRateWindowSeconds
+      # Lambda Function URL: a free HTTPS endpoint (no API Gateway 12-month
+      # free-tier limit) and no 29s integration cap. Prefer this URL for the
+      # frontend; the API Gateway endpoint below still exists for demos/judges.
+      # NO Cors block here, deliberately. A Function URL with a CORS config
+      # appends Access-Control-Allow-Origin to EVERY response -- including the
+      # ones FastAPI's CORSMiddleware already set -- and the browser then sees
+      #   Access-Control-Allow-Origin: *, https://<app>.amplifyapp.com
+      # and refuses the request ("contains multiple values, but only one is
+      # allowed"). curl never notices, so this only shows up from a real page.
+      # CORS is owned by the app instead (ALLOWED_ORIGINS -> CORSMiddleware),
+      # which is also the layer local uvicorn dev relies on. Without a CORS
+      # config the Function URL forwards OPTIONS to the function, so FastAPI
+      # answers preflights too.
+      FunctionUrlConfig:
+        AuthType: NONE
+      Events:
+        # /{proxy+} covers /api/scans, /api/scans/{id}, /api/health, ...
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /{proxy+}
+            Method: ANY
+        # Bare / so the API root answers instead of 403-ing.
+        RootApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /
+            Method: ANY
+      Policies:
+        # SAM has no Bedrock policy template, so the exact action the narrative
+        # agent uses is granted inline. Scoped to foundation-model ARNs rather
+        # than "*": least privilege, and it cannot reach any other Bedrock API
+        # (agents, knowledge bases, fine-tuning jobs). The region wildcard
+        # covers cross-region inference profiles for Nova.
+        - Statement:
+            - Sid: BedrockInvokeFoundationModel
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                - !Sub "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*"
+        # SAM managed policy template: full CRUD on ScansTable — scan history,
+        # the shared Bedrock budget counter and the narrative cache.
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ScansTable
+
+Outputs:
+  FunctionUrl:
+    Description: >
+      RECOMMENDED endpoint for the frontend (NEXT_PUBLIC_API_URL). Free, no
+      API Gateway free-tier expiry, and no 29s integration timeout — which
+      matters because scans run synchronously on Lambda.
+    Value: !GetAtt ScanFunctionUrl.FunctionUrl
+  ApiUrl:
+    Description: >
+      API Gateway endpoint (alternative). Caps integrations at 29s, so a slow
+      scan may return 504 here even though Lambda allows 60s.
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  FunctionArn:
+    Description: ScanFunction Lambda ARN
+    Value: !GetAtt ScanFunction.Arn
+  TableName:
+    Description: DynamoDB table holding scan history, budget counter and narrative cache
+    Value: !Ref ScansTable
