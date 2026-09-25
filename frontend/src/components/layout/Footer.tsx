@@ -58,7 +58,7 @@ export function Footer() {
 
         <div className="mt-10 border-t border-border pt-6">
           <p className="text-xs text-muted">
-            MCP Guardian — built for WeMakeDevs × AWS First Commit 2026.
+            MCP Guardian.
           </p>
         </div>
       </div>
