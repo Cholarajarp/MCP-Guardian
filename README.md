@@ -132,7 +132,7 @@ Any real GitHub repo works too — try scanning a well-known MCP server and comp
 
 ## Credits & license
 
-Built for the AWS × WeMakeDevs **First Commit** hackathon (Sept 17–20, 2026). Third-party dependencies are listed in `backend/requirements.txt` and `frontend/package.json`; the MCP protocol is specified at [modelcontextprotocol.io](https://modelcontextprotocol.io/). Sample fixtures and demo material are original to this project — see [samples/README.md](samples/README.md).
+Third-party dependencies are listed in `backend/requirements.txt` and `frontend/package.json`; the MCP protocol is specified at [modelcontextprotocol.io](https://modelcontextprotocol.io/). Sample fixtures and demo material are original to this project — see [samples/README.md](samples/README.md).
 
 Licensed under **Apache-2.0** — see [LICENSE](LICENSE).
 
