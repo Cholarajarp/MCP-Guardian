@@ -1,0 +1,52 @@
+# Node / Next
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.eslintcache
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# Env & secrets
+.env
+.env.local
+.env*.local
+*.db
+.mcp.json
+# OS / misc
+.DS_Store
+Thumbs.db
+dist/
+build/
+.aws-sam/
+# No-Docker Lambda build output (infra/build-nodocker.ps1). The generic build/
+# rule above happens to catch the artifact subdirectory, but not the generated
+# template beside it, so the whole directory is excluded explicitly.
+.aws-sam-nodocker/
+*.db-shm
+*.db-wal
+*.db-journal
+video-clips/
+
+# Agent / MCP tool working directories. These are local caches and session
+# artifacts (indexes, page snapshots, console logs), not source: they are
+# regenerated on demand and would otherwise be swept in by `git add .`.
+.serena/
+.playwright-mcp/
+.claude/
+AGENTS.md
+CLAUDE.md
+**/AGENTS.md
+**/CLAUDE.md
+
+# Hackathon working notes, not project code. The published repo is the product;
+# the shooting script and the submission writeup are authoring material that
+# stays local.
+docs/demo-script.md
+docs/hackathon-writeup.md
